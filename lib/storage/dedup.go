@@ -78,8 +78,29 @@ func deduplicateSamplesDuringMerge(srcTimestamps, srcValues []int64, dedupInterv
 		// Fast path - nothing to deduplicate
 		return srcTimestamps, srcValues
 	}
-	// TODO: implement deduplicate samples
-	return nil, nil
+	// implement deduplicate samples
+	var destTimestamps, destValues []int64
+	// destTimestamps = append(destTimestamps, srcTimestamps[0])
+	// destValues = append(destValues, srcValues[0])
+	lastTs := -dedupInterval
+	n := len(srcTimestamps)
+	for i := 0; i < n; i++ {
+		value := srcValues[i]
+		ts := srcTimestamps[i]
+		if ts-lastTs < dedupInterval {
+			continue
+		}
+		// 相同的ts取最大值
+		j := i
+		for ; j < n && srcTimestamps[i] == srcTimestamps[j]; j++ {
+			value = max(value, srcValues[j])
+		}
+		i = j - 1
+		destTimestamps = append(destTimestamps, ts)
+		destValues = append(destValues, value)
+		lastTs = ts
+	}
+	return destTimestamps, destValues
 }
 
 func needsDedup(timestamps []int64, dedupInterval int64) bool {
