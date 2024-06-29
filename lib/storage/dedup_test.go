@@ -90,6 +90,8 @@ func TestDeduplicateSamplesDuringMergeWithIdenticalTimestamps(t *testing.T) {
 	}
 	f(time.Second, []int64{1000, 1000}, []int64{2, 1}, []int64{1000}, []int64{2})
 	f(time.Second, []int64{1001, 1001}, []int64{2, 1}, []int64{1001}, []int64{2})
+	// TODO: https://github.com/VictoriaMetrics/VictoriaMetrics/issues/6557
+	// is it a bug?
 	f(time.Second, []int64{1000, 1001, 1001, 1001, 2001}, []int64{1, 2, 5, 3, 0}, []int64{1000, 1001, 2001}, []int64{1, 5, 0})
 }
 

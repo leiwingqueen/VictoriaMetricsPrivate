@@ -79,11 +79,11 @@ func deduplicateSamplesDuringMerge(srcTimestamps, srcValues []int64, dedupInterv
 		return srcTimestamps, srcValues
 	}
 	// implement deduplicate samples
-	var destTimestamps, destValues []int64
-	// destTimestamps = append(destTimestamps, srcTimestamps[0])
-	// destValues = append(destValues, srcValues[0])
+	// don't need to allocate new memory to save the result
 	lastTs := -dedupInterval
 	n := len(srcTimestamps)
+	// pointer of next write
+	p := 0
 	for i := 0; i < n; i++ {
 		value := srcValues[i]
 		ts := srcTimestamps[i]
@@ -96,11 +96,12 @@ func deduplicateSamplesDuringMerge(srcTimestamps, srcValues []int64, dedupInterv
 			value = max(value, srcValues[j])
 		}
 		i = j - 1
-		destTimestamps = append(destTimestamps, ts)
-		destValues = append(destValues, value)
+		srcTimestamps[p] = ts
+		srcValues[p] = value
+		p++
 		lastTs = ts
 	}
-	return destTimestamps, destValues
+	return srcTimestamps[:p], srcValues[:p]
 }
 
 func needsDedup(timestamps []int64, dedupInterval int64) bool {
