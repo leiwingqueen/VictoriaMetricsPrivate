@@ -79,15 +79,16 @@ func deduplicateSamplesDuringMerge(srcTimestamps, srcValues []int64, dedupInterv
 		return srcTimestamps, srcValues
 	}
 	// implement deduplicate samples
-	// don't need to allocate new memory to save the result
-	lastTs := -dedupInterval
+	// don't need to allocate new memory to save the
+	// [0,dedupInterval) just save one metric
+	nextTs := srcTimestamps[0] - srcTimestamps[0]%dedupInterval
 	n := len(srcTimestamps)
 	// pointer of next write
 	p := 0
 	for i := 0; i < n; i++ {
 		value := srcValues[i]
 		ts := srcTimestamps[i]
-		if ts-lastTs < dedupInterval {
+		if ts < nextTs {
 			continue
 		}
 		// 相同的ts取最大值
@@ -99,7 +100,8 @@ func deduplicateSamplesDuringMerge(srcTimestamps, srcValues []int64, dedupInterv
 		srcTimestamps[p] = ts
 		srcValues[p] = value
 		p++
-		lastTs = ts
+		nextTs = ts + dedupInterval
+		nextTs -= nextTs % dedupInterval
 	}
 	return srcTimestamps[:p], srcValues[:p]
 }
