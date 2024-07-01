@@ -54,8 +54,12 @@ func DeduplicateSamples(srcTimestamps []int64, srcValues []float64, dedupInterva
 		srcTimestamps[p] = ts
 		srcValues[p] = value
 		p++
-		nextTs = ts + dedupInterval
-		nextTs -= nextTs % dedupInterval
+		// move to next time window
+		nextTs += dedupInterval
+		if nextTs < ts {
+			nextTs = ts + dedupInterval
+			nextTs -= nextTs % dedupInterval
+		}
 	}
 	return srcTimestamps[:p], srcValues[:p]
 }
