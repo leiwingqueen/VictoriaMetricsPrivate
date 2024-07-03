@@ -356,6 +356,7 @@ func (q *queue) MustWriteBlock(block []byte) {
 	}
 	if q.maxPendingBytes > 0 {
 		// Drain the oldest blocks until the number of pending bytes becomes enough for the block.
+		// 8 byte use to save the size of block
 		blockSize := uint64(len(block) + 8)
 		maxPendingBytes := q.maxPendingBytes
 		if blockSize < maxPendingBytes {
@@ -394,7 +395,7 @@ func (q *queue) writeBlock(block []byte) error {
 	defer func() {
 		writeDurationSeconds.Add(time.Since(startTime).Seconds())
 	}()
-	// TODO: implement
+	// implement
 	// hint:
 	// - check if the current chunk file has enough space for the block
 	// - we need to call nextChunkFileForWrite to create a new chunkFile if current chunk file is full
@@ -403,6 +404,25 @@ func (q *queue) writeBlock(block []byte) error {
 	// - write header and block
 	// - update q.blocksWritten and q.bytesWritten
 	// - call flushWriterMetainfoIfNeeded to flush metainfo
+	blockSize := uint64(len(block))
+	if q.writerLocalOffset+blockSize+8 > q.chunkFileSize {
+		if err := q.nextChunkFileForWrite(); err != nil {
+			return err
+		}
+	}
+	header := make([]byte, 8)
+	header = encoding.MarshalUint64(header, blockSize)
+	if err := q.write(header); err != nil {
+		return err
+	}
+	if err := q.write(block); err != nil {
+		return err
+	}
+	q.blocksWritten.Inc()
+	q.bytesWritten.AddInt64(int64(blockSize))
+	if err := q.flushWriterMetainfoIfNeeded(); err != nil {
+		return err
+	}
 	return nil
 }
 
