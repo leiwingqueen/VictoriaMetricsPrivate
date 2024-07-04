@@ -411,7 +411,7 @@ func (q *queue) writeBlock(block []byte) error {
 		}
 	}
 	header := make([]byte, 8)
-	header = encoding.MarshalUint64(header, blockSize)
+	header = encoding.MarshalUint64(header[:0], blockSize)
 	if err := q.write(header); err != nil {
 		return err
 	}
@@ -420,10 +420,7 @@ func (q *queue) writeBlock(block []byte) error {
 	}
 	q.blocksWritten.Inc()
 	q.bytesWritten.AddInt64(int64(blockSize))
-	if err := q.flushWriterMetainfoIfNeeded(); err != nil {
-		return err
-	}
-	return nil
+	return q.flushWriterMetainfoIfNeeded()
 }
 
 var writeDurationSeconds = metrics.NewFloatCounter(`vm_persistentqueue_write_duration_seconds_total`)
