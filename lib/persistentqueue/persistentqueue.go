@@ -405,7 +405,9 @@ func (q *queue) writeBlock(block []byte) error {
 	// - update q.blocksWritten and q.bytesWritten
 	// - call flushWriterMetainfoIfNeeded to flush metainfo
 	blockSize := uint64(len(block))
-	if q.writerLocalOffset+blockSize+8 > q.chunkFileSize {
+	// why use maxBlockSize to check nor the len(block),
+	// cause it's the special tag to tell you whether need to read the data to the end of chunk
+	if q.writerLocalOffset+q.maxBlockSize+8 > q.chunkFileSize {
 		if err := q.nextChunkFileForWrite(); err != nil {
 			return err
 		}
