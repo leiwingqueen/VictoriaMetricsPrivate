@@ -356,6 +356,7 @@ func (q *queue) MustWriteBlock(block []byte) {
 	}
 	if q.maxPendingBytes > 0 {
 		// Drain the oldest blocks until the number of pending bytes becomes enough for the block.
+		// 8 byte use to save the size of block
 		blockSize := uint64(len(block) + 8)
 		maxPendingBytes := q.maxPendingBytes
 		if blockSize < maxPendingBytes {
@@ -394,28 +395,33 @@ func (q *queue) writeBlock(block []byte) error {
 	defer func() {
 		writeDurationSeconds.Add(time.Since(startTime).Seconds())
 	}()
+	// implement
+	// hint:
+	// - check if the current chunk file has enough space for the block
+	// - we need to call nextChunkFileForWrite to create a new chunkFile if current chunk file is full
+	// - we use q.maxBlockSize+8 to estimate the size of block(why just use the size of block byte array)
+	// - use encoding.MarshalUint64 to encode the block size
+	// - write header and block
+	// - update q.blocksWritten and q.bytesWritten
+	// - call flushWriterMetainfoIfNeeded to flush metainfo
+	blockSize := uint64(len(block))
+	// why use maxBlockSize to check nor the len(block),
+	// cause it's the special tag to tell you whether need to read the data to the end of chunk
 	if q.writerLocalOffset+q.maxBlockSize+8 > q.chunkFileSize {
 		if err := q.nextChunkFileForWrite(); err != nil {
-			return fmt.Errorf("cannot create next chunk file: %w", err)
+			return err
 		}
 	}
-
-	// Write block len.
-	blockLen := uint64(len(block))
-	header := headerBufPool.Get()
-	header.B = encoding.MarshalUint64(header.B, blockLen)
-	err := q.write(header.B)
-	headerBufPool.Put(header)
-	if err != nil {
-		return fmt.Errorf("cannot write header with size 8 bytes to %q: %w", q.writerPath, err)
+	header := make([]byte, 8)
+	header = encoding.MarshalUint64(header[:0], blockSize)
+	if err := q.write(header); err != nil {
+		return err
 	}
-
-	// Write block contents.
 	if err := q.write(block); err != nil {
-		return fmt.Errorf("cannot write block contents with size %d bytes to %q: %w", len(block), q.writerPath, err)
+		return err
 	}
 	q.blocksWritten.Inc()
-	q.bytesWritten.Add(len(block))
+	q.bytesWritten.AddInt64(int64(blockSize))
 	return q.flushWriterMetainfoIfNeeded()
 }
 
