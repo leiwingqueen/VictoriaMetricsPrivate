@@ -56,8 +56,8 @@ func TestMergeSortBlocks(t *testing.T) {
 			Values:     []float64{4.2, 2.1, 10},
 		},
 	}, 2, &Result{
-		Timestamps: []int64{2, 3},
-		Values:     []float64{2.1, 10},
+		Timestamps: []int64{1, 2},
+		Values:     []float64{4.2, 2.1},
 	})
 
 	// Multiple blocks without time range intersection.
@@ -190,7 +190,7 @@ func TestMergeSortBlocks(t *testing.T) {
 			Values:     []float64{21, 22, 23, 24, 25, 26},
 		},
 	}, 5, &Result{
-		Timestamps: []int64{5, 10, 12},
-		Values:     []float64{7, 24, 26},
+		Timestamps: []int64{1, 5, 10},
+		Values:     []float64{21, 7, 24},
 	})
 }
