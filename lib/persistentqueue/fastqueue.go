@@ -219,21 +219,31 @@ func (fq *FastQueue) MustReadBlock(dst []byte) ([]byte, bool) {
 			if n := fq.pq.GetPendingBytes(); n > 0 {
 				logger.Panicf("BUG: the file-based queue must be empty when the inmemory queue is non-empty; it contains %d pending bytes", n)
 			}
-			// TODO: implement read block from in-memory queue
+			// implement read block from in-memory queue
 			// hint:
 			// - use fq.ch to get the block
 			// - update fq.pendingInmemoryBytes
 			// - update fq.lastInmemoryBlockReadTime
 			// - append the block to dst
 			// - remember to return the block to the blockBufPool
+			blockData := <-fq.ch
+			fq.pendingInmemoryBytes -= uint64(len(blockData.B))
+			fq.lastInmemoryBlockReadTime = fasttime.UnixTimestamp()
+			dst = append(dst, blockData.B...)
+			blockBufPool.Put(blockData)
 			return dst, true
 		}
 		if n := fq.pq.GetPendingBytes(); n > 0 {
-			// TODO: get data from persistent queue
+			// get data from persistent queue
 			// hint:
 			// - check if there is any pending bytes in the persistent queue
 			// - if there is, read the block from the persistent queue
 			// - update dst with the block
+			if blockData, ok := fq.pq.MustReadBlockNonblocking(dst); ok {
+				dst = append(dst, blockData...)
+				return dst, true
+			}
+			// read error
 			continue
 		}
 		if fq.stopDeadline > 0 {
