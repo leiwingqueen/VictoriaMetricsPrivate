@@ -15,7 +15,10 @@ The design of the fast queue is driven by the following goals:
 
 ## Design Overview
 
+
 ### key component
+
+![overview](vmagent-fastqueue.png)
 
 - WriteRequest
 
@@ -28,3 +31,5 @@ fast queue contain two queue, in-memory queue and persistent queue. For most cas
 - persistent queue
 
 If the in-memory queue is full, the data points will be flushed to the persistent queue. The persistent queue is used to store the data points that cannot be processed immediately.
+
+
