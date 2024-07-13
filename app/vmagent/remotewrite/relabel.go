@@ -126,6 +126,26 @@ func (rctx *relabelCtx) appendExtraLabels(tss []prompbmarshal.TimeSeries, extraL
 	// - update the labels of the time series
 	// - update the rctx.labels
 	// - if label already exists, update the value, use promrelabel.GetLabelByName to get the label
+	if len(tss) == 0 {
+		return
+	}
+	rctx.reset()
+	labels := rctx.labels
+	for i := range tss {
+		ts := &tss[i]
+		size := len(labels)
+		labels = append(labels, ts.Labels...)
+		// [size:] is the last append timeseries
+		for _, extraLabel := range extraLabels {
+			tmp := promrelabel.GetLabelByName(labels[size:], extraLabel.Name)
+			if tmp != nil {
+				tmp.Value = extraLabel.Value
+			} else {
+				labels = append(labels, extraLabel)
+				ts.Labels = append(ts.Labels, extraLabel)
+			}
+		}
+	}
 }
 
 func (rctx *relabelCtx) tenantToLabels(tss []prompbmarshal.TimeSeries, accountID, projectID uint32) {
