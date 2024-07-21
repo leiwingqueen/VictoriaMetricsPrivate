@@ -65,7 +65,7 @@ func (as *avgAggrState) flushState(ctx *flushCtx, resetState bool) {
 	// - get the value as avgStateValue and calculate the avg
 	// - if resetState is true, update the deleted flag
 	// - remember to append the series to the ctx
-	timestamp := int64(fasttime.UnixTimestamp())
+	timestamp := int64(fasttime.UnixTimestamp()) * 1_000
 	as.m.Range(func(key, value any) bool {
 		k := key.(string)
 		v := value.(*avgStateValue)
@@ -74,7 +74,9 @@ func (as *avgAggrState) flushState(ctx *flushCtx, resetState bool) {
 		}
 		avg := v.sum / float64(v.count)
 		v.mu.Lock()
-		v.deleted = true
+		if resetState {
+			v.deleted = true
+		}
 		v.mu.Unlock()
 		ctx.appendSeries(k, "avg", timestamp, avg)
 		return true
