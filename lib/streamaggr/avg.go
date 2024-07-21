@@ -35,9 +35,9 @@ func (as *avgAggrState) pushSamples(samples []pushSample) {
 			var value *avgStateValue
 			v, ok := as.m.Load(outputKey)
 			if !ok {
-				value = &avgStateValue{sum: sample.value, count: 1, deleted: false}
+				value = &avgStateValue{sum: 0, count: 0, deleted: false}
 				actual, loaded := as.m.LoadOrStore(outputKey, value)
-				if !loaded {
+				if loaded {
 					value = actual.(*avgStateValue)
 				}
 			} else {
