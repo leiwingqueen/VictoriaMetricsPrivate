@@ -11,7 +11,7 @@ type sumSamplesAggrState struct {
 
 type sumSamplesStateValue struct {
 	mu sync.Mutex
-	// TODO: implement
+	// implement
 	deleted bool
 }
 
