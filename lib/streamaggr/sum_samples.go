@@ -1,9 +1,8 @@
 package streamaggr
 
 import (
-	"sync"
-
 	"github.com/VictoriaMetrics/VictoriaMetrics/lib/fasttime"
+	"sync"
 )
 
 // sumSamplesAggrState calculates output=sum_samples, e.g. the sum over input samples.
@@ -12,7 +11,8 @@ type sumSamplesAggrState struct {
 }
 
 type sumSamplesStateValue struct {
-	mu      sync.Mutex
+	mu sync.Mutex
+	// implement
 	sum     float64
 	deleted bool
 }
@@ -22,60 +22,50 @@ func newSumSamplesAggrState() *sumSamplesAggrState {
 }
 
 func (as *sumSamplesAggrState) pushSamples(samples []pushSample) {
-	for i := range samples {
-		s := &samples[i]
-		outputKey := getOutputKey(s.key)
-
-	again:
-		v, ok := as.m.Load(outputKey)
-		if !ok {
-			// The entry is missing in the map. Try creating it.
-			v = &sumSamplesStateValue{
-				sum: s.value,
+	// implement
+	for _, sample := range samples {
+		for {
+			outputKey := getOutputKey(sample.key)
+			var value *sumSamplesStateValue
+			v, ok := as.m.Load(outputKey)
+			if !ok {
+				value = &sumSamplesStateValue{sum: 0, deleted: false}
+				actual, loaded := as.m.LoadOrStore(outputKey, value)
+				if loaded {
+					value = actual.(*sumSamplesStateValue)
+				}
+			} else {
+				value = v.(*sumSamplesStateValue)
 			}
-			vNew, loaded := as.m.LoadOrStore(outputKey, v)
-			if !loaded {
-				// The new entry has been successfully created.
-				continue
+			// update value
+			value.mu.Lock()
+			deleted := value.deleted
+			if !deleted {
+				value.sum += sample.value
 			}
-			// Use the entry created by a concurrent goroutine.
-			v = vNew
-		}
-		sv := v.(*sumSamplesStateValue)
-		sv.mu.Lock()
-		deleted := sv.deleted
-		if !deleted {
-			sv.sum += s.value
-		}
-		sv.mu.Unlock()
-		if deleted {
-			// The entry has been deleted by the concurrent call to flushState
-			// Try obtaining and updating the entry again.
-			goto again
+			value.mu.Unlock()
+			if !deleted {
+				break
+			}
 		}
 	}
 }
 
 func (as *sumSamplesAggrState) flushState(ctx *flushCtx, resetState bool) {
-	currentTimeMsec := int64(fasttime.UnixTimestamp()) * 1000
-	m := &as.m
-	m.Range(func(k, v interface{}) bool {
+	// implement
+	timestamp := int64(fasttime.UnixTimestamp()) * 1_000
+	as.m.Range(func(key, value any) bool {
+		k := key.(string)
+		v := value.(*sumSamplesStateValue)
 		if resetState {
-			// Atomically delete the entry from the map, so new entry is created for the next flush.
-			m.Delete(k)
+			as.m.Delete(key)
 		}
-
-		sv := v.(*sumSamplesStateValue)
-		sv.mu.Lock()
-		sum := sv.sum
+		v.mu.Lock()
 		if resetState {
-			// Mark the entry as deleted, so it won't be updated anymore by concurrent pushSample() calls.
-			sv.deleted = true
+			v.deleted = true
 		}
-		sv.mu.Unlock()
-
-		key := k.(string)
-		ctx.appendSeries(key, "sum_samples", currentTimeMsec, sum)
+		v.mu.Unlock()
+		ctx.appendSeries(k, "sum_samples", timestamp, v.sum)
 		return true
 	})
 }

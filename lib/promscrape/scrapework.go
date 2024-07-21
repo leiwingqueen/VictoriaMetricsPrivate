@@ -523,6 +523,7 @@ func (sw *scrapeWork) processDataOneShot(scrapeTimestamp, realTimestamp int64, b
 	return err
 }
 
+// process data in stream mode, reduce memory resources cost when scrape big amount of metrics from kube-state-metric
 func (sw *scrapeWork) processDataInStreamMode(scrapeTimestamp, realTimestamp int64, body *bytesutil.ByteBuffer, scrapeDurationSeconds float64) error {
 	samplesScraped := 0
 	samplesPostRelabeling := 0
