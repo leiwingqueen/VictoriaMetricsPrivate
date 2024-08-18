@@ -269,12 +269,36 @@ func (tb *table) MustAddRows(rows []rawRow) {
 	}
 
 	// Verify whether all the rows may be added to a single partition.
-	// TODO: implement this check, fast path
+	// implement this check, fast path
 	// hint:
 	// - use getPartitionWrappers and putPartitionWrappers functions
 	// - use tb.GetPartitions and tb.PutPartitions functions
 	// - check if all the rows fit into a single partition
-
+	pws := getPartitionWrappers()
+	defer putPartitionWrappers(pws)
+	pws.a = pws.a[:0]
+	ptws := tb.GetPartitions(pws.a)
+	checkSingle := func() (*partitionWrapper, bool) {
+		for _, ptw := range ptws {
+			singlePw := true
+			for _, row := range rows {
+				if !ptw.pt.HasTimestamp(row.Timestamp) {
+					singlePw = false
+					break
+				}
+			}
+			if singlePw {
+				return ptw, true
+			}
+		}
+		return nil, false
+	}
+	ptw, singlePw := checkSingle()
+	if singlePw {
+		ptw.pt.AddRows(rows)
+		tb.PutPartitions(ptws)
+		return
+	}
 	// Slower path - split rows into per-partition buckets.
 	ptBuckets := make(map[*partitionWrapper][]rawRow)
 	var missingRows []rawRow
