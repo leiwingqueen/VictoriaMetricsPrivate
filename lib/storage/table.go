@@ -300,62 +300,17 @@ func (tb *table) MustAddRows(rows []rawRow) {
 		return
 	}
 	// Slower path - split rows into per-partition buckets.
-	ptBuckets := make(map[*partitionWrapper][]rawRow)
-	var missingRows []rawRow
-	for i := range rows {
-		r := &rows[i]
-		ptFound := false
-		for _, ptw := range ptws {
-			if ptw.pt.HasTimestamp(r.Timestamp) {
-				ptBuckets[ptw] = append(ptBuckets[ptw], *r)
-				ptFound = true
-				break
-			}
-		}
-		if !ptFound {
-			missingRows = append(missingRows, *r)
-		}
-	}
-
-	for ptw, ptRows := range ptBuckets {
-		ptw.pt.AddRows(ptRows)
-	}
-	tb.PutPartitions(ptws)
-	if len(missingRows) == 0 {
-		return
-	}
+	// TODO: implement
 
 	// The slowest path - there are rows that don't fit any existing partition.
 	// Create new partitions for these rows.
 	// Do this under tb.ptwsLock.
-	minTimestamp, maxTimestamp := tb.getMinMaxTimestamps()
-	tb.ptwsLock.Lock()
-	for i := range missingRows {
-		r := &missingRows[i]
-
-		if r.Timestamp < minTimestamp || r.Timestamp > maxTimestamp {
-			// Silently skip row outside retention, since it should be deleted anyway.
-			continue
-		}
-
-		// Make sure the partition for the r hasn't been added by another goroutines.
-		ptFound := false
-		for _, ptw := range tb.ptws {
-			if ptw.pt.HasTimestamp(r.Timestamp) {
-				ptFound = true
-				ptw.pt.AddRows(missingRows[i : i+1])
-				break
-			}
-		}
-		if ptFound {
-			continue
-		}
-
-		pt := mustCreatePartition(r.Timestamp, tb.smallPartitionsPath, tb.bigPartitionsPath, tb.s)
-		pt.AddRows(missingRows[i : i+1])
-		tb.addPartitionNolock(pt)
-	}
-	tb.ptwsLock.Unlock()
+	// TODO: implement
+	//  hint:
+	// - use tb.ptwsLock.Lock() and tb.ptwsLock.Unlock()
+	// - use tb.getMinMaxTimestamps() to get min and max timestamps
+	// - remember to recheck whether the partition for the row hasn't been added by another goroutine
+	// - use mustCreatePartition to create a new partition and add it to tb using function named addPartitionNolock
 }
 
 func (tb *table) getMinMaxTimestamps() (int64, int64) {
