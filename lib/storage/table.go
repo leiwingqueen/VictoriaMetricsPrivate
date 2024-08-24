@@ -315,6 +315,7 @@ func (tb *table) MustAddRows(rows []rawRow) {
 			missing = append(missing, row)
 		}
 	}
+	tb.PutPartitions(ptws)
 	if len(missing) == 0 {
 		return
 	}
@@ -335,7 +336,7 @@ func (tb *table) MustAddRows(rows []rawRow) {
 		}
 		found := false
 		for j := range tb.ptws {
-			pw := ptws[j]
+			pw := tb.ptws[j]
 			if pw.pt.HasTimestamp(row.Timestamp) {
 				pw.pt.AddRows(rows[i : i+1])
 				found = true
@@ -347,7 +348,7 @@ func (tb *table) MustAddRows(rows []rawRow) {
 		}
 		// create a new partition
 		pt := mustCreatePartition(row.Timestamp, tb.smallPartitionsPath, tb.bigPartitionsPath, tb.s)
-		pt.AddRows(rows[i : i+1])
+		pt.AddRows(missing[i : i+1])
 		tb.addPartitionNolock(pt)
 	}
 	tb.ptwsLock.Unlock()
