@@ -315,6 +315,9 @@ func (tb *table) MustAddRows(rows []rawRow) {
 			missing = append(missing, row)
 		}
 	}
+	for pw, rawRows := range mp {
+		pw.pt.AddRows(rawRows)
+	}
 	tb.PutPartitions(ptws)
 	if len(missing) == 0 {
 		return
@@ -338,7 +341,7 @@ func (tb *table) MustAddRows(rows []rawRow) {
 		for j := range tb.ptws {
 			pw := tb.ptws[j]
 			if pw.pt.HasTimestamp(row.Timestamp) {
-				pw.pt.AddRows(rows[i : i+1])
+				pw.pt.AddRows(missing[i : i+1])
 				found = true
 				break
 			}
