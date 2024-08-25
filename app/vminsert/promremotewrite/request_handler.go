@@ -18,6 +18,7 @@ var (
 )
 
 // InsertHandler processes remote write for prometheus.
+// vmagent write data to vminsert will call this function
 func InsertHandler(req *http.Request) error {
 	extraLabels, err := parserCommon.GetExtraLabels(req)
 	if err != nil {

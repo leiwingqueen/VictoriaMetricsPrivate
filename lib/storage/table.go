@@ -269,96 +269,86 @@ func (tb *table) MustAddRows(rows []rawRow) {
 	}
 
 	// Verify whether all the rows may be added to a single partition.
-	ptwsX := getPartitionWrappers()
-	defer putPartitionWrappers(ptwsX)
-
-	ptwsX.a = tb.GetPartitions(ptwsX.a[:0])
-	ptws := ptwsX.a
-	for i, ptw := range ptws {
-		singlePt := true
-		for j := range rows {
-			if !ptw.pt.HasTimestamp(rows[j].Timestamp) {
-				singlePt = false
-				break
-			}
-		}
-		if !singlePt {
-			continue
-		}
-
-		if i != 0 {
-			// Move the partition with the matching rows to the front of tb.ptws,
-			// so it will be detected faster next time.
-			tb.ptwsLock.Lock()
-			for j := range tb.ptws {
-				if ptw == tb.ptws[j] {
-					tb.ptws[0], tb.ptws[j] = tb.ptws[j], tb.ptws[0]
+	// implement this check, fast path
+	// hint:
+	// - use getPartitionWrappers and putPartitionWrappers functions
+	// - use tb.GetPartitions and tb.PutPartitions functions
+	// - check if all the rows fit into a single partition
+	pws := getPartitionWrappers()
+	defer putPartitionWrappers(pws)
+	pws.a = pws.a[:0]
+	ptws := tb.GetPartitions(pws.a)
+	checkSingle := func() (*partitionWrapper, bool) {
+		for _, ptw := range ptws {
+			singlePw := true
+			for _, row := range rows {
+				if !ptw.pt.HasTimestamp(row.Timestamp) {
+					singlePw = false
 					break
 				}
 			}
-			tb.ptwsLock.Unlock()
+			if singlePw {
+				return ptw, true
+			}
 		}
-
-		// Fast path - add all the rows into the ptw.
+		return nil, false
+	}
+	ptw, singlePw := checkSingle()
+	if singlePw {
 		ptw.pt.AddRows(rows)
 		tb.PutPartitions(ptws)
 		return
 	}
-
 	// Slower path - split rows into per-partition buckets.
-	ptBuckets := make(map[*partitionWrapper][]rawRow)
-	var missingRows []rawRow
-	for i := range rows {
-		r := &rows[i]
-		ptFound := false
-		for _, ptw := range ptws {
-			if ptw.pt.HasTimestamp(r.Timestamp) {
-				ptBuckets[ptw] = append(ptBuckets[ptw], *r)
-				ptFound = true
+	mp := make(map[*partitionWrapper][]rawRow)
+	var missing []rawRow
+	for _, row := range rows {
+		found := false
+		for _, pw := range ptws {
+			if pw.pt.HasTimestamp(row.Timestamp) {
+				found = true
+				mp[pw] = append(mp[pw], row)
 				break
 			}
 		}
-		if !ptFound {
-			missingRows = append(missingRows, *r)
+		if !found {
+			missing = append(missing, row)
 		}
 	}
-
-	for ptw, ptRows := range ptBuckets {
-		ptw.pt.AddRows(ptRows)
-	}
 	tb.PutPartitions(ptws)
-	if len(missingRows) == 0 {
+	if len(missing) == 0 {
 		return
 	}
-
 	// The slowest path - there are rows that don't fit any existing partition.
 	// Create new partitions for these rows.
 	// Do this under tb.ptwsLock.
+	// hint:
+	// - use tb.ptwsLock.Lock() and tb.ptwsLock.Unlock()
+	// - use tb.getMinMaxTimestamps() to get min and max timestamps
+	// - remember to recheck whether the partition for the row hasn't been added by another goroutine
+	// - use mustCreatePartition to create a new partition and add it to tb using function named addPartitionNolock
 	minTimestamp, maxTimestamp := tb.getMinMaxTimestamps()
 	tb.ptwsLock.Lock()
-	for i := range missingRows {
-		r := &missingRows[i]
-
-		if r.Timestamp < minTimestamp || r.Timestamp > maxTimestamp {
-			// Silently skip row outside retention, since it should be deleted anyway.
+	for i := range missing {
+		row := &missing[i]
+		if row.Timestamp < minTimestamp || row.Timestamp > maxTimestamp {
 			continue
 		}
-
-		// Make sure the partition for the r hasn't been added by another goroutines.
-		ptFound := false
-		for _, ptw := range tb.ptws {
-			if ptw.pt.HasTimestamp(r.Timestamp) {
-				ptFound = true
-				ptw.pt.AddRows(missingRows[i : i+1])
+		found := false
+		for j := range tb.ptws {
+			pw := tb.ptws[j]
+			if pw.pt.HasTimestamp(row.Timestamp) {
+				pw.pt.AddRows(rows[i : i+1])
+				found = true
 				break
 			}
 		}
-		if ptFound {
+		if found {
 			continue
 		}
-
-		pt := mustCreatePartition(r.Timestamp, tb.smallPartitionsPath, tb.bigPartitionsPath, tb.s)
-		pt.AddRows(missingRows[i : i+1])
+		// create a new partition
+		pt := mustCreatePartition(row.Timestamp, tb.smallPartitionsPath, tb.bigPartitionsPath, tb.s)
+		pt.AddRows(missing[i : i+1])
 		tb.addPartitionNolock(pt)
 	}
 	tb.ptwsLock.Unlock()

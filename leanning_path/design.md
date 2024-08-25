@@ -11,7 +11,7 @@ VictoriaMetrics(简称vm)的内部设计文档过于稀少，为了方便日后�
 
 ### 2.2 vmselect
 
-// TODO
+https://github.com/VictoriaMetrics/VictoriaMetrics/issues/3268
 
 ### 2.3 vmstorage
 
