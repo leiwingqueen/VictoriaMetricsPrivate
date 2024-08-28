@@ -137,13 +137,51 @@ func mergeBlocks(ob, ib1, ib2 *Block, retentionDeadline int64, rowsDeleted *atom
 	ib1.assertMergeable(ib2)
 	ib1.assertUnmarshaled()
 	ib2.assertUnmarshaled()
-	// TODO: implement
+	// implement
 	// hint:
 	// - use skipSamplesOutsideRetention to skip samples outside retention
 	// - fast path, if ib1 values have smaller timestamps than ib2 values, then appendRows ib1 and ib2
 	// - if ib1 reach to the end, append ib2. the same as ib2
 	// - merge ib1 and ib2
 	// - use appendRow to append data to ob
+	skipSamplesOutsideRetention(ib1, retentionDeadline, rowsDeleted)
+	skipSamplesOutsideRetention(ib2, retentionDeadline, rowsDeleted)
+	// merge
+	for ib1.nextIdx != len(ib1.timestamps) || ib2.nextIdx != len(ib2.timestamps) {
+		if ib1.nextIdx == len(ib1.timestamps) {
+			// reach to the end
+			appendRows(ob, ib2)
+			return
+		}
+		if ib2.nextIdx == len(ib2.timestamps) {
+			appendRows(ob, ib1)
+			return
+		}
+		// fast path
+		minTs1 := ib1.timestamps[ib1.nextIdx]
+		minTs2 := ib2.timestamps[ib1.nextIdx]
+		if ib1.bh.MaxTimestamp < minTs2 {
+			appendRows(ob, ib1)
+			appendRows(ob, ib2)
+			return
+		}
+		if ib2.bh.MaxTimestamp < minTs1 {
+			appendRows(ob, ib2)
+			appendRows(ob, ib1)
+			return
+		}
+		if ib1.timestamps[ib1.nextIdx] > ib2.timestamps[ib2.nextIdx] {
+			ib1, ib2 = ib2, ib1
+		}
+		idx := ib1.nextIdx
+		for idx < len(ib1.timestamps) && ib1.timestamps[idx] <= ib2.timestamps[ib2.nextIdx] {
+			idx++
+		}
+		// [nextIdx,idx) append to ob
+		ob.timestamps = append(ob.timestamps, ib1.timestamps[ib1.nextIdx:idx]...)
+		ob.values = append(ob.values, ib1.values[ib1.nextIdx:idx]...)
+		ib1.nextIdx = idx
+	}
 }
 
 func skipSamplesOutsideRetention(b *Block, retentionDeadline int64, rowsDeleted *atomic.Uint64) {

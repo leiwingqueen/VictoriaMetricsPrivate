@@ -41,7 +41,7 @@ func TestMergeBlockStreamsOneStreamOneBlockManyRows(t *testing.T) {
 	}
 	bsr := newTestBlockStreamReader(rows)
 	bsrs := []*blockStreamReader{bsr}
-	testMergeBlockStreams(t, bsrs, 1, maxRowsPerBlock, minTimestamp, maxTimestamp)
+	m testMergeBlockStreams(t, bsrs, 1, maxRowsPerBlock, minTimestamp, maxTimestamp)
 }
 
 func TestMergeBlockStreamsOneStreamManyBlocksOneRow(t *testing.T) {
