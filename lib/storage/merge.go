@@ -159,7 +159,7 @@ func mergeBlocks(ob, ib1, ib2 *Block, retentionDeadline int64, rowsDeleted *atom
 		}
 		// fast path
 		minTs1 := ib1.timestamps[ib1.nextIdx]
-		minTs2 := ib2.timestamps[ib1.nextIdx]
+		minTs2 := ib2.timestamps[ib2.nextIdx]
 		if ib1.bh.MaxTimestamp < minTs2 {
 			appendRows(ob, ib1)
 			appendRows(ob, ib2)
