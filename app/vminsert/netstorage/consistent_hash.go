@@ -34,13 +34,20 @@ func (rh *consistentHash) getNodeIdx(h uint64, excludeIdxs []int) int {
 		// This is better from load-balacning PoV than selecting some static node.
 		excludeIdxs = nil
 	}
-
-next:
+	// hint:
+	// - use fastHashUint64 to calculate the hash
+	// - use the following code to iterate over the nodeHashes and excludeIdxs
+	// - use the following code to calculate the maximum hash
 	for i, nh := range rh.nodeHashes {
+		ignore := false
 		for _, j := range excludeIdxs {
 			if i == j {
-				continue next
+				ignore = true
+				break
 			}
+		}
+		if ignore {
+			continue
 		}
 		if m := fastHashUint64(nh ^ h); m > mMax {
 			mMax = m
