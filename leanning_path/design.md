@@ -15,6 +15,53 @@ https://github.com/VictoriaMetrics/VictoriaMetrics/issues/3268
 
 ### 2.3 vmstorage
 
+### partition
+
+VictoriaMetrics的存储引擎是基于分区的，每个分区包含多个块，每个块包含多个行，每个行包含多个时间序列。
+partition主要是按月划分。在small part path和big part path里面分别有记录。
+
+VictoriaMetrics's storage engine is based on partitions, each partition contains multiple blocks, each block contains multiple rows, each row contains multiple time series.
+The partition is mainly divided by month. There are records in the small part path and the big part path respectively.
+
+```shell
+
+```go
+// mustCreatePartition creates new partition for the given timestamp and the given paths
+// to small and big partitions.
+func mustCreatePartition(timestamp int64, smallPartitionsPath, bigPartitionsPath string, s *Storage) *partition {
+	// the name of the partition is the timestamp which is the start of the month,eg 2024-09
+    name := timestampToPartitionName(timestamp)
+    smallPartsPath := filepath.Join(filepath.Clean(smallPartitionsPath), name)
+    bigPartsPath := filepath.Join(filepath.Clean(bigPartitionsPath), name)
+    logger.Infof("creating a partition %q with smallPartsPath=%q, bigPartsPath=%q", name, smallPartsPath, bigPartsPath)
+    
+    fs.MustMkdirFailIfExist(smallPartsPath)
+    fs.MustMkdirFailIfExist(bigPartsPath)
+    
+    pt := newPartition(name, smallPartsPath, bigPartsPath, s)
+    pt.tr.fromPartitionTimestamp(timestamp)
+    pt.startBackgroundWorkers()
+    
+    logger.Infof("partition %q has been created", name)
+    
+    return pt
+}
+```
+
+### rawRowsShards
+
+patition contains the rawRowsShards, which is the raw data before compressing. The raw data is stored in the rawRowsShards, and the data is converted into inmemoryParts on every pendingRowsFlushInterval or when rawRows becomes full.
+
+```go
+// rawRows contains recently added rows that haven't been converted into parts yet.
+//
+// rawRows are converted into inmemoryParts on every pendingRowsFlushInterval or when rawRows becomes full.
+//
+// rawRows aren't visible for search due to performance reasons.
+rawRows rawRowsShards
+```
+
+
 ![rowRowsShards design](./ssr.png)
 
 有兴趣了解这个实现可以参考这个MR [merge request](https://kgit.kugou.net/yongquanli/VictoriaMetrics/-/tree/rrs_implement)
