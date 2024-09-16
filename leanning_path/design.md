@@ -13,6 +13,8 @@ VictoriaMetrics(简称vm)的内部设计文档过于稀少，为了方便日后�
 
 https://github.com/VictoriaMetrics/VictoriaMetrics/issues/3268
 
+https://blog.devops.dev/persistent-data-structures-in-victoriametrics-part-2-vmselect-9e3de39a4d20
+
 ### 2.3 vmstorage
 
 ### partition

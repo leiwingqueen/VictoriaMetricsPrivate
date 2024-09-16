@@ -116,6 +116,7 @@ func (api *vmstorageAPI) TagValueSuffixes(qt *querytracer.Tracer, accountID, pro
 }
 
 func (api *vmstorageAPI) LabelNames(qt *querytracer.Tracer, sq *storage.SearchQuery, maxLabelNames int, deadline uint64) ([]string, error) {
+	// TODO: implement query
 	tr := sq.GetTimeRange()
 	maxMetrics := getMaxMetrics(sq)
 	tfss, err := api.setupTfss(qt, sq, tr, maxMetrics, deadline)
