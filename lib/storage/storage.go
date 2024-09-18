@@ -1720,26 +1720,32 @@ func (s *Storage) ForceMergePartitions(partitionNamePrefix string) error {
 //
 // The caller should limit the number of concurrent AddRows calls to the number
 // of available CPU cores in order to limit memory usage.
+// core function,add rows to storage
 func (s *Storage) AddRows(mrs []MetricRow, precisionBits uint8) {
 	if len(mrs) == 0 {
 		return
 	}
 
 	// Add rows to the storage in blocks with limited size in order to reduce memory usage.
-	ic := getMetricRowsInsertCtx()
-	maxBlockLen := len(ic.rrs)
+	// hint:
+	// 1. getMetricRowsInsertCtx
+	// 2. split the mrs into blocks with maxBlockLen
+	// 3. remember to add the rowsAddedTotal with the length of the block
+	// 4. after the loop, putMetricRowsInsertCtx
+	ctx := getMetricRowsInsertCtx()
+	maxSize := len(ctx.rrs)
+	defer putMetricRowsInsertCtx(ctx)
 	for len(mrs) > 0 {
-		mrsBlock := mrs
-		if len(mrs) > maxBlockLen {
-			mrsBlock = mrs[:maxBlockLen]
-			mrs = mrs[maxBlockLen:]
+		mtrBlock := mrs
+		if len(mrs) > maxSize {
+			mtrBlock = mtrBlock[:maxSize]
+			mrs = mrs[maxSize:]
 		} else {
-			mrs = nil
+			mrs = mrs[len(mrs):]
 		}
-		s.add(ic.rrs, ic.tmpMrs, mrsBlock, precisionBits)
-		s.rowsAddedTotal.Add(uint64(len(mrsBlock)))
+		s.add(ctx.rrs, ctx.tmpMrs, mtrBlock, precisionBits)
+		s.rowsAddedTotal.Add(uint64(len(mtrBlock)))
 	}
-	putMetricRowsInsertCtx(ic)
 }
 
 type metricRowsInsertCtx struct {

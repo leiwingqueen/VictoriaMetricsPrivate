@@ -247,44 +247,42 @@ func (ris *rawItemsShard) Len() int {
 }
 
 func (ris *rawItemsShard) addItems(items [][]byte) ([][]byte, []*inmemoryBlock) {
-	var ibsToFlush []*inmemoryBlock
+	// implement
+	// hint
+	// - we will make thread safe using mu.Lock and mu.UnLock
+	// - we will use ibsToFlush to store the inmemoryBlock that we need to flush
+	// - we will use tailItems to store the items that we can't add to the inmemoryBlock
+	// - we will use ibs to store the inmemoryBlock
+	// TODO: why we need to design such a complicated structure
 	var tailItems [][]byte
-
+	var ibsToFlush []*inmemoryBlock
 	ris.mu.Lock()
-	ibs := ris.ibs
-	if len(ibs) == 0 {
-		ibs = append(ibs, &inmemoryBlock{})
-		ris.updateFlushDeadline()
-		ris.ibs = ibs
+	defer ris.mu.Unlock()
+	if len(ris.ibs) == 0 {
+		ib := &inmemoryBlock{data: make([]byte, 0, maxInmemoryBlockSize), items: make([]Item, 0, 512)}
+		ris.ibs = append(ris.ibs, ib)
 	}
-	ib := ibs[len(ibs)-1]
+	// add data to the last inmemory block
+	ib := ris.ibs[len(ris.ibs)-1]
 	for i, item := range items {
 		if ib.Add(item) {
 			continue
 		}
-		if len(ibs) >= maxBlocksPerShard {
-			ibsToFlush = append(ibsToFlush, ibs...)
-			ibs = make([]*inmemoryBlock, 0, maxBlocksPerShard)
+		// inmemory block is full. we need to append new inmemory block to ibs
+		if len(ris.ibs) >= maxBlocksPerShard {
+			ibsToFlush = ris.ibs[:maxBlocksPerShard]
 			tailItems = items[i:]
+			ris.ibs = ris.ibs[maxBlocksPerShard:]
 			break
 		}
-		ib = &inmemoryBlock{}
+		ris.ibs = append(ris.ibs, &inmemoryBlock{})
+		ib = ris.ibs[len(ris.ibs)-1]
 		if ib.Add(item) {
-			ibs = append(ibs, ib)
 			continue
 		}
-
-		// Skip too long item
-		itemPrefix := item
-		if len(itemPrefix) > 128 {
-			itemPrefix = itemPrefix[:128]
-		}
+		// skip long item
 		tooLongItemsTotal.Add(1)
-		tooLongItemLogger.Errorf("skipping adding too long item to indexdb: len(item)=%d; it shouldn't exceed %d bytes; item prefix=%q", len(item), maxInmemoryBlockSize, itemPrefix)
 	}
-	ris.ibs = ibs
-	ris.mu.Unlock()
-
 	return tailItems, ibsToFlush
 }
 

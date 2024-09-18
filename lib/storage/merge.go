@@ -39,6 +39,10 @@ var bsmPool = &sync.Pool{
 var errForciblyStopped = fmt.Errorf("forcibly stopped")
 
 func mergeBlockStreamsInternal(ph *partHeader, bsw *blockStreamWriter, bsm *blockStreamMerger, stopCh <-chan struct{}, s *Storage, rowsMerged, rowsDeleted *atomic.Uint64) error {
+	// TODO: implement
+	// - use bsm to merge blocks
+	// - use s.getDeletedMetricIDs() to skip blocks for deleted metrics
+	// - use s.getRetentionDeadline() to skip blocks out of the given retention
 	dmis := s.getDeletedMetricIDs()
 	pendingBlockIsEmpty := true
 	pendingBlock := getBlock()
