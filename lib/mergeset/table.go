@@ -247,13 +247,43 @@ func (ris *rawItemsShard) Len() int {
 }
 
 func (ris *rawItemsShard) addItems(items [][]byte) ([][]byte, []*inmemoryBlock) {
-	// TODO: implement
+	// implement
 	// hint
 	// - we will make thread safe using mu.Lock and mu.UnLock
 	// - we will use ibsToFlush to store the inmemoryBlock that we need to flush
 	// - we will use tailItems to store the items that we can't add to the inmemoryBlock
 	// - we will use ibs to store the inmemoryBlock
-	return nil, nil
+	// TODO: why we need to design such a complicated structure
+	var tailItems [][]byte
+	var ibsToFlush []*inmemoryBlock
+	ris.mu.Lock()
+	defer ris.mu.Unlock()
+	if len(ris.ibs) == 0 {
+		ib := &inmemoryBlock{data: make([]byte, 0, maxInmemoryBlockSize), items: make([]Item, 0, 512)}
+		ris.ibs = append(ris.ibs, ib)
+	}
+	// add data to the last inmemory block
+	ib := ris.ibs[len(ris.ibs)-1]
+	for i, item := range items {
+		if ib.Add(item) {
+			continue
+		}
+		// inmemory block is full. we need to append new inmemory block to ibs
+		if len(ris.ibs) >= maxBlocksPerShard {
+			ibsToFlush = ris.ibs[:maxBlocksPerShard]
+			tailItems = items[i:]
+			ris.ibs = ris.ibs[maxBlocksPerShard:]
+			break
+		}
+		ris.ibs = append(ris.ibs, &inmemoryBlock{})
+		ib = ris.ibs[len(ris.ibs)-1]
+		if ib.Add(item) {
+			continue
+		}
+		// skip long item
+		tooLongItemsTotal.Add(1)
+	}
+	return tailItems, ibsToFlush
 }
 
 func (ris *rawItemsShard) updateFlushDeadline() {
