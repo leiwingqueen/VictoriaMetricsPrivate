@@ -154,13 +154,27 @@ func commonPrefixLen(a, b []byte) int {
 // false is returned if x isn't added to ib due to block size constraints.
 func (ib *inmemoryBlock) Add(x []byte) bool {
 	// https://stackoverflow.com/questions/78325903/how-mergeset-works-in-victoriametrics
-	// TODO: implement
+	// implement
 	// hint:
 	// - check if x fits into the block,using variable maxInmemoryBlockSize
 	// - if cap(data) == 0, pre-allocate data and items in order to reduce memory allocations
 	// - append x to data and append the item to items
 	// - return true if x is added to ib, otherwise return false
-	return false
+	size := len(x)
+	if size == 0 {
+		return true
+	}
+	if len(ib.data)+size > maxInmemoryBlockSize {
+		return false
+	}
+	if cap(ib.data) == 0 {
+		ib.data = make([]byte, 0, maxInmemoryBlockSize)
+		ib.items = make([]Item, 0, 512)
+	}
+	offset := len(ib.data)
+	ib.data = append(ib.data, x...)
+	ib.items = append(ib.items, Item{uint32(offset), uint32(offset) + uint32(size)})
+	return true
 }
 
 // maxInmemoryBlockSize is the maximum inmemoryBlock.data size.
