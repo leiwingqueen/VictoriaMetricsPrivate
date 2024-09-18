@@ -161,9 +161,6 @@ func (ib *inmemoryBlock) Add(x []byte) bool {
 	// - append x to data and append the item to items
 	// - return true if x is added to ib, otherwise return false
 	size := len(x)
-	if size == 0 {
-		return true
-	}
 	if len(ib.data)+size > maxInmemoryBlockSize {
 		return false
 	}
