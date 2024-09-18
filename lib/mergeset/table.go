@@ -247,45 +247,13 @@ func (ris *rawItemsShard) Len() int {
 }
 
 func (ris *rawItemsShard) addItems(items [][]byte) ([][]byte, []*inmemoryBlock) {
-	var ibsToFlush []*inmemoryBlock
-	var tailItems [][]byte
-
-	ris.mu.Lock()
-	ibs := ris.ibs
-	if len(ibs) == 0 {
-		ibs = append(ibs, &inmemoryBlock{})
-		ris.updateFlushDeadline()
-		ris.ibs = ibs
-	}
-	ib := ibs[len(ibs)-1]
-	for i, item := range items {
-		if ib.Add(item) {
-			continue
-		}
-		if len(ibs) >= maxBlocksPerShard {
-			ibsToFlush = append(ibsToFlush, ibs...)
-			ibs = make([]*inmemoryBlock, 0, maxBlocksPerShard)
-			tailItems = items[i:]
-			break
-		}
-		ib = &inmemoryBlock{}
-		if ib.Add(item) {
-			ibs = append(ibs, ib)
-			continue
-		}
-
-		// Skip too long item
-		itemPrefix := item
-		if len(itemPrefix) > 128 {
-			itemPrefix = itemPrefix[:128]
-		}
-		tooLongItemsTotal.Add(1)
-		tooLongItemLogger.Errorf("skipping adding too long item to indexdb: len(item)=%d; it shouldn't exceed %d bytes; item prefix=%q", len(item), maxInmemoryBlockSize, itemPrefix)
-	}
-	ris.ibs = ibs
-	ris.mu.Unlock()
-
-	return tailItems, ibsToFlush
+	// TODO: implement
+	// hint
+	// - we will make thread safe using mu.Lock and mu.UnLock
+	// - we will use ibsToFlush to store the inmemoryBlock that we need to flush
+	// - we will use tailItems to store the items that we can't add to the inmemoryBlock
+	// - we will use ibs to store the inmemoryBlock
+	return nil, nil
 }
 
 func (ris *rawItemsShard) updateFlushDeadline() {
