@@ -17,7 +17,17 @@ https://blog.devops.dev/persistent-data-structures-in-victoriametrics-part-2-vms
 
 ### 2.3 vmstorage
 
+[how-mergeset-works-in-victoriametrics](https://stackoverflow.com/questions/78325903/how-mergeset-works-in-victoriametrics)
+
 ### partition
+
+![vmstorage partition](vmstorage-table.png)
+
+source code
+```go
+// file path:/lib/storage/table.go
+func (tb *table) MustAddRows(rows []rawRow) 
+```
 
 VictoriaMetrics的存储引擎是基于分区的，每个分区包含多个块，每个块包含多个行，每个行包含多个时间序列。
 partition主要是按月划分。在small part path和big part path里面分别有记录。
