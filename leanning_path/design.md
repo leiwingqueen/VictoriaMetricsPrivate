@@ -122,5 +122,9 @@ return MarshalVarUint64s(dst, tmp[:])
 
 ### 2.4 vminsert
 
+## reference
+
+[understanding false sharing](https://theboreddev.com/understanding-false-sharing/)
+
 
 
