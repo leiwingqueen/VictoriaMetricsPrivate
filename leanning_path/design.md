@@ -21,7 +21,7 @@ https://blog.devops.dev/persistent-data-structures-in-victoriametrics-part-2-vms
 
 ### partition
 
-![vmstorage partition](vmstorage-table.png)
+![vmstorage partition](image/vmstorage-table.png)
 
 source code
 ```go
@@ -92,7 +92,20 @@ rawRows rawRowsShards
 ```
 
 
-![rowRowsShards design](./rawRowShard.png)
+![rowRowsShards design](./image/rawRowsShard.png)
+
+here are some question in rawRowsShard design?
+
+- Q1: why we need to design multi rawRowsShard?
+
+improve the concurrency of write data to rawRowsShard
+
+- Q2: what's the difference between rawRowShard and inmemoryParts
+
+rawRowShard save the raw data of raw sample without any compaction and isn't visible for users.
+Only with data compaction to the inmemoryParts, we can query data from vmstorage. 
+inmemory. inmemoryParts is the level-0 in LSM.
+
 
 有兴趣了解这个实现可以参考这个MR [merge request](https://kgit.kugou.net/yongquanli/VictoriaMetrics/-/tree/rrs_implement)
 
