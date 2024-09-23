@@ -7,7 +7,7 @@ VictoriaMetrics(简称vm)的内部设计文档过于稀少，为了方便日后�
 
 ### 2.1 vmagent
 
-// TODO
+[vmagent fastqueue design](./vmagent-fastqueue.md)
 
 ### 2.2 vmselect
 
@@ -63,6 +63,24 @@ func mustCreatePartition(timestamp int64, smallPartitionsPath, bigPartitionsPath
 ### rawRowsShards
 
 patition contains the rawRowsShards, which is the raw data before compressing. The raw data is stored in the rawRowsShards, and the data is converted into inmemoryParts on every pendingRowsFlushInterval or when rawRows becomes full.
+
+partition--> rawRowsShards --> inmemoryParts
+
+source code
+```go
+// lib/storage/partition.go
+func (rrss *rawRowsShards) addRows(pt *partition, rows []rawRow) {
+    shards := rrss.shards
+    shardsLen := uint32(len(shards))
+    for len(rows) > 0 {
+        n := rrss.shardIdx.Add(1)
+        idx := n % shardsLen
+        tailRows, rowsToFlush := shards[idx].addRows(rows)
+        rrss.addRowsToFlush(pt, rowsToFlush)
+        rows = tailRows
+    }
+}
+```
 
 ```go
 // rawRows contains recently added rows that haven't been converted into parts yet.
