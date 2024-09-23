@@ -111,6 +111,8 @@ inmemory. inmemoryParts is the level-0 in LSM.
 
 生成partition后的内存压缩逻辑 [compression](https://segmentfault.com/a/1190000043749609)
 
+[rawRows to inmemoryPart](./image/rawRowsToInmemoryPart.png)
+
 代码路径：
 
 ```shell
