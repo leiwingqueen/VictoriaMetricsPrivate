@@ -92,7 +92,7 @@ rawRows rawRowsShards
 ```
 
 
-![rowRowsShards design](./ssr.png)
+![rowRowsShards design](./rawRowShard.png)
 
 有兴趣了解这个实现可以参考这个MR [merge request](https://kgit.kugou.net/yongquanli/VictoriaMetrics/-/tree/rrs_implement)
 
@@ -143,6 +143,8 @@ return MarshalVarUint64s(dst, tmp[:])
 ## reference
 
 [understanding false sharing](https://theboreddev.com/understanding-false-sharing/)
+
+[VictoriaMetrics源码：tv的压缩](https://segmentfault.com/a/1190000043749609)
 
 
 
