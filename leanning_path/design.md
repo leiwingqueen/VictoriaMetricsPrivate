@@ -1,9 +1,9 @@
-# VictoriaMetrics 设计
-## 1. 背景
+# design of VictoriaMetrics
+## 1. background
 
 VictoriaMetrics(简称vm)的内部设计文档过于稀少，为了方便日后的维护和问题排查，尝试从源码分析其每个组件的核心功能
 
-## 2. 组件
+## 2. component
 
 ### 2.1 vmagent
 
