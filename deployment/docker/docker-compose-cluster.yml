@@ -39,7 +39,7 @@ services:
   # where N is number of vmstorages (2 in this case).
   vmstorage-1:
     container_name: vmstorage-1
-    image: victoriametrics/vmstorage:v1.102.1-cluster
+    image: victoriametrics/vmstorage:heads-cluster-0-gdaca5692f-dirty-690961a3
     ports:
       - 8482
       - 8400
@@ -51,7 +51,7 @@ services:
     restart: always
   vmstorage-2:
     container_name: vmstorage-2
-    image: victoriametrics/vmstorage:v1.102.1-cluster
+    image: victoriametrics/vmstorage:heads-cluster-0-gdaca5692f-dirty-690961a3
     ports:
       - 8482
       - 8400

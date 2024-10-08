@@ -3,6 +3,25 @@
 
 VictoriaMetrics(简称vm)的内部设计文档过于稀少，为了方便日后的维护和问题排查，尝试从源码分析其每个组件的核心功能
 
+## 2. build from source
+
+[building-from-source](https://docs.victoriametrics.com/cluster-victoriametrics/#building-from-sources)
+
+```shell
+# build the binary package
+make vminsert-prod vmselect-prod vmstorage-prod
+# build docker image
+make package
+# change the docker-compose-cluster.yml version
+# TODO
+
+# start the container
+make docker-cluster-up
+# remove the container
+make docker-cluster-down
+```
+
+
 ## 2. 组件
 
 ### 2.1 vmagent
@@ -111,6 +130,12 @@ return MarshalVarUint64s(dst, tmp[:])
 
 
 ### 2.4 vminsert
+
+## reference
+
+[docker get-started](https://docs.docker.com/get-started/)
+
+[building-from-source](https://docs.victoriametrics.com/cluster-victoriametrics/#building-from-sources)
 
 
 
