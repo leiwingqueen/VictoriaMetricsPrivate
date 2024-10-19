@@ -986,6 +986,14 @@ func (tb *Table) mustMergeInmemoryPartsFinal(pws []*partWrapper) *partWrapper {
 
 func (tb *Table) createInmemoryPart(ibs []*inmemoryBlock) *partWrapper {
 	// Prepare blockStreamReaders for source blocks.
+	// implement create inmemory part
+	// hint:
+	// - create blockStreamReader for each inmemoryBlock using function getBlcokStreamReader and MustInitFromInmemoryBlock
+	// - you should ignore the inmemoryBlock that size of items is zero
+	// - you should return nil if there is no inmemoryBlock to merge
+	// - you should return the inmemoryPartWrapper if there is only one inmemoryBlock to merge
+	// - you should merge the inmemoryBlocks into inmemoryPart if there are more than one inmemoryBlock to merge
+	// - flushToDiskDeadline is current time add dataFlushInterval
 	bsrs := make([]*blockStreamReader, 0, len(ibs))
 	for _, ib := range ibs {
 		if len(ib.items) == 0 {
@@ -998,18 +1006,16 @@ func (tb *Table) createInmemoryPart(ibs []*inmemoryBlock) *partWrapper {
 	if len(bsrs) == 0 {
 		return nil
 	}
-
-	flushToDiskDeadline := time.Now().Add(dataFlushInterval)
+	flushDeadline := time.Now().Add(dataFlushInterval)
 	if len(bsrs) == 1 {
 		// Nothing to merge. Just return a single inmemory part.
 		bsr := bsrs[0]
 		mp := &inmemoryPart{}
 		mp.Init(&bsr.Block)
 		putBlockStreamReader(bsr)
-		return newPartWrapperFromInmemoryPart(mp, flushToDiskDeadline)
+		return newPartWrapperFromInmemoryPart(mp, flushDeadline)
 	}
-
-	return tb.mustMergeIntoInmemoryPart(bsrs, flushToDiskDeadline)
+	return tb.mustMergeIntoInmemoryPart(bsrs, flushDeadline)
 }
 
 func (tb *Table) mustMergeIntoInmemoryPart(bsrs []*blockStreamReader, flushToDiskDeadline time.Time) *partWrapper {
