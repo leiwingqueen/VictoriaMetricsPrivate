@@ -1,6 +1,7 @@
 # All these commands must run from repository root.
 
-DOCKER_NAMESPACE ?= victoriametrics
+# DOCKER_NAMESPACE ?= victoriametrics
+DOCKER_NAMESPACE ?= leiwingqueen
 
 ROOT_IMAGE ?= alpine:3.20.2
 ROOT_IMAGE_SCRATCH ?= scratch
