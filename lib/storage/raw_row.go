@@ -85,6 +85,8 @@ func (rrs *rawRowsSort) Swap(i, j int) {
 	x[i], x[j] = x[j], x[i]
 }
 
+// core function of the rawRowsMarshaler
+// raw row to inmemory part
 func (rrm *rawRowsMarshaler) marshalToInmemoryPart(mp *inmemoryPart, rows []rawRow) {
 	if len(rows) == 0 {
 		return
